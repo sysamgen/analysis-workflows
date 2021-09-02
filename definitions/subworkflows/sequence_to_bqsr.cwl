@@ -55,8 +55,8 @@ steps:
     merge:
         run: ../tools/merge_bams.cwl
         in:
-            bams: align/aligned_bam
             name: final_name
+            bams: align/aligned_bam
         out:
             [merged_bam]
     name_sort:
