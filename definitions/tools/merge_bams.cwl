@@ -3,7 +3,7 @@
 cwlVersion: v1.0
 class: CommandLineTool
 label: "Sambamba: merge"
-baseCommand: ["/usr/bin/perl", "merge.pl"]
+baseCommand: ["/bin/bash", "merge.sh"]
 requirements:
     - class: ResourceRequirement
       ramMin: 8000
@@ -12,49 +12,49 @@ requirements:
       dockerPull: "mgibio/bam-merge:0.1"
     - class: InitialWorkDirRequirement
       listing:
-      - entryname: 'merge.pl'
+      - entryname: 'merge.sh'
         entry: |
-            #!/usr/bin/perl
+            #!/bin/bash
+            set -o pipefail
+            set -o errexit
+            set -o nounset
 
-            use strict;
-            use warnings;
+            SORTED=false
 
-            use Getopt::Std;
-            use File::Copy;
+            while getopts "t:n:s:" opt; do
+                case "$opt" in
+                    t)
+                        NTHREADS="$OPTARG"
+                        ;;
+                    n)
+                        OUTFILENAME="$OPTARG"
+                        ;;
+                    s)
+                        SORTED=true
+                        ;;
+                esac
+            done
 
-            my %opts;
-            getopts('t:n:s', \%opts);
-            my $nthreads = $opts{t} // die 'missing thread count';
-            my $outfilename = $opts{n} // die 'missing output filename';
-            my $sorted = $opts{s};
-
-            my @bams = @ARGV;
-            die 'missing input bams' unless scalar(@bams);
+            BAMS=("\${@:$OPTIND}")
+            NUM_BAMS="\${#BAMS[@]}"
 
             #if there is only one bam, just copy it and index it
-            if (scalar(@bams) == 1) {
-                copy($bams[0], $outfilename) or die 'failed to copy file:' . $!;
-            } else {
-                if ($sorted) {
-                    my $rv = system((qw(/usr/bin/sambamba merge -t)), $nthreads, $outfilename, @bams);
-                    $rv == 0 or die 'failed to merge with sambamba';
-                } else { #unsorted bams, use picard
-                    my @args = (
-                        'OUTPUT=' . $outfilename,
-                        'ASSUME_SORTED=true',
-                        'USE_THREADING=true',
-                        'SORT_ORDER=unsorted',
-                        'VALIDATION_STRINGENCY=LENIENT',
-                        map { 'INPUT=' . $_ } @bams
-                    );
-                    my $rv = system((qw(java -jar -Xmx6g /opt/picard/picard.jar MergeSamFiles)), @args);
-                    $rv == 0 or die 'failed to merge with picard';
-                }
-            }
-            if ($sorted) {
-                my $rv = system((qw(/usr/bin/sambamba index)), $outfilename);
-                $rv == 0 or die 'failed to index';
-            }
+            if [[ $NUM_BAMS -eq 1 ]]; then
+                cp "$BAMS" "$OUTFILENAME";
+            else
+                if [[ $SORTED == "true" ]];then
+                    /usr/bin/sambamba merge -t "$NTHREADS" "$OUTFILENAME" "\${BAMS[@]}"
+                else #unsorted bams, use picard
+                    args=(OUTPUT="$OUTFILENAME" ASSUME_SORTED=true USE_THREADING=true SORT_ORDER=unsorted VALIDATION_STRINGENCY=LENIENT)
+                    for i in "\${BAMS[@]}";do
+                      args+=("INPUT=$i")
+                    done
+                    java -jar -Xmx6g /opt/picard/picard.jar MergeSamFiles "\${args[@]}"
+                fi
+            fi
+            if [[ $SORTED == "true" ]];then
+              /usr/bin/sambamba index "$OUTFILENAME"
+            fi
 
 arguments: [
     "-t", "$(runtime.cores)",

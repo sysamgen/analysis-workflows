@@ -5,6 +5,7 @@ tumor_bam:
 normal_bam:
   class: File
   path: ../exome_workflow/chr17_test_normal_aligned.bam
+normal_sample_name: normal_sample_name_test
 interval_list:
   class: File
   path: ../exome_workflow/chr17_test_genes.interval_list

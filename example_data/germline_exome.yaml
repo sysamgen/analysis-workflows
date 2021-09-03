@@ -4,6 +4,7 @@ bait_intervals:
   path: exome_workflow/chr17_test_bait.interval_list
 bqsr_intervals:
 - chr17
+bqsr_known_sites: [{class: File, path: exome_workflow/chr17_test_omni.vcf.gz}]
 dbsnp_vcf:
   class: File
   path: exome_workflow/chr17_test_dbsnp.vcf.gz
@@ -39,7 +40,9 @@ summary_intervals:
       class: File
       path: exome_workflow/chr17_test_genes.interval_list
 picard_metric_accumulation_level: ALL_READS
-reference: "/gscmnt/gc2764/cad/jgarza/shared/exome_workflow/chr17_test.fa"
+reference:
+  class: File
+  path: exome_workflow/chr17_test.fa
 sequence:
   - sequence:
       bam:
@@ -58,6 +61,9 @@ target_intervals:
   class: File
   path: exome_workflow/chr17_test_target.interval_list
 vep_cache_dir: "/gscmnt/gc2764/cad/jgarza/shared/exome_workflow"
+vep_ensembl_assembly: GRCh38
+vep_ensembl_species: homo_sapiens
+vep_ensembl_version: '95'
 vep_custom_annotations:
 - method: 'exact'
   force_report_coordinates: true
